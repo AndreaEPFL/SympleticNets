@@ -8,8 +8,8 @@ net4 = torch.nn.Sequential(
     torch.nn.Tanh(),
     torch.nn.Linear(40, 20),
     torch.nn.Tanh(),
-    torch.nn.Linear(20,4),
-    )
+    torch.nn.Linear(20, 4),
+)
 
 
 class ResNetLin(torch.nn.Module):
@@ -46,16 +46,17 @@ class sympLinear(torch.nn.Module):
         self.in_size = in_size
         self.out_size = out_size
 
-        mat = self.get_sympletic_app
-        mat2 = self.get_sympletic_app
-        mat3 = self.get_sympletic_app
+        mat = self.get_sympletic_app()
+        mat2 = self.symmetric_matrix()
+        mat3 = self.get_sympletic_app()
 
-        self.weights1 = torch.nn.Parameter(mat)
-        self.weights2 = torch.nn.Parameter(mat2)  # Not used for the moment
+        self.weights1 = torch.nn.Parameter(mat, requires_grad=True)  # 'requires_grad' to store gradient
+        self.weights2 = torch.nn.Parameter(mat2, requires_grad=True)  # Partial matrix
         self.weights3 = torch.nn.Parameter(mat3)  # Not used for the moment
         self.bias = torch.nn.Parameter(torch.zeros(out_size))
 
     def forward(self, x):
+        
         return x.mm(self.weights1) + self.bias
 
     def get_sympletic_app(self):
@@ -69,6 +70,14 @@ class sympLinear(torch.nn.Module):
 
         return torch.from_numpy(np.append(S, S_, axis=0)).type(torch.float32)
 
+    def symmetric_matrix(self):
+        rng = np.random.default_rng()
+        sze = (int(self.in_size / 2), int(self.out_size / 2))
+        A = rng.random(sze)
+        A = (A + A.transpose()) / 2
+
+        return torch.from_numpy(A)
+
 
 class SympNet(torch.nn.Module):
     def __init__(self):
@@ -79,5 +88,7 @@ class SympNet(torch.nn.Module):
 
     def forward(self, x):
         # Connect the layer Outputs here to define the forward pass
+
         x = torch.selu(self.lin1(x))
+
         return x

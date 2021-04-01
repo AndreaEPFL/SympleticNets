@@ -50,3 +50,15 @@ def validation_model(data, network, loss):
     loss_quantity = loss(dat, prediction)
 
     return loss_quantity.item()
+
+
+def sympletic_test(N, grad):
+    n = int(N / 2)
+    J_np = np.append(np.zeros((n, n)), np.identity(n), axis=1)
+    J_np_bis = np.append((-1)*np.identity(n), np.zeros((n,n)), axis=1)
+
+    J = torch.from_numpy(np.append(J_np, J_np_bis, axis=0)).type(torch.float32)
+
+    test = torch.transpose(grad, 0, 1) @ J @ grad
+
+    return torch.eq(J, test)

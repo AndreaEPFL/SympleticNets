@@ -12,18 +12,18 @@ def main():
     # Parameters
 
     config = wandb.config
-    config.lr = 0.0001
-    config.architecture = "ResNet"
+    config.lr = 0.001
+    config.architecture = "SympNet"
     config.batch_size = 400
-    config.epochs = 500
-    config.dataset = "Kepler_init_dis_01" """
+    config.epochs = 300
+    config.dataset = "Kepler_init_dis_1.0429" """
 
     # Import data generated on Matlab
     data = load_data(
         r'semester_project_material\Kepler_problem\2D\data\KP1D_M_1_init_dis_1.0429_Integrator_Stormer_Verlet.txt')
     data = data[0:12000]
 
-    # Validation set from 10 to 15 sec.
+    # Validation set from 30 to 40 sec.
     data_val = load_data(
         r'semester_project_material\Kepler_problem\2D\data\KP1D_M_1_init_dis_1.0429_Integrator_Stormer_Verlet.txt')
     data_val = data_val[12000:16000]
@@ -48,7 +48,7 @@ def main():
     loss_func = torch.nn.MSELoss()  # Regression mean squared loss
 
     BATCH_SIZE = 400
-    EPOCH = 100
+    EPOCH = 2
 
     torch_dataset = Data.TensorDataset(net_input, net_output)
 
@@ -77,7 +77,6 @@ def main():
             #        print(name, param.data)
 
             loss = loss_func(prediction, b_y)  # must be (1. nn output, 2. target)
-
             optimizer.zero_grad()  # clear gradients for next train
             loss.backward()  # backpropagation, compute gradients
             optimizer.step()  # apply gradients
@@ -85,6 +84,11 @@ def main():
         loss_store.append(loss.item())
         #wandb.log({"loss": loss})
         print(f"Epoch: {epoch}, Training loss: {loss.item()}")
+
+
+        # Test symplecity
+        print(smpNet.lin1.weights1.grad)
+        print("Sympletic test :", sympletic_test(4, smpNet.lin1.weights1.grad))
 
     # Plot the losses
     fig = plt.figure(figsize=(15, 9), dpi=100)
@@ -144,7 +148,7 @@ def main():
     plt.ylabel("Position - Right ball")
     plt.legend()
 
-    fig.savefig('Prediction vs Data - Kepler - NewNet', bbox_inches='tight', dpi=100)
+    fig.savefig('Prediction vs Data - Kepler - SympNet', bbox_inches='tight', dpi=100)
 
     plt.show()
 
