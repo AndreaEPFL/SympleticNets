@@ -87,8 +87,8 @@ def main():
 
 
         # Test symplecity
-        print(smpNet.lin1.weights1.grad)
-        print("Sympletic test :", sympletic_test(4, smpNet.lin1.weights1.grad))
+        print(smpNet.lin1.weights2.grad)
+        print("Sympletic test :", sympletic_test(2, smpNet.lin1.weights2.grad))
 
     # Plot the losses
     fig = plt.figure(figsize=(15, 9), dpi=100)

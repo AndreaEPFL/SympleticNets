@@ -56,8 +56,14 @@ class sympLinear(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros(out_size))
 
     def forward(self, x):
-        
-        return x.mm(self.weights1) + self.bias
+
+        W = (self.weights2 + torch.transpose(self.weights2, 0, 1))/2 # Get symmetric matrix with weights
+        sze = (int(self.in_size/2), int(self.out_size/2))
+        Z = torch.zeros(sze)
+        Id = torch.eye(int(self.in_size/2))
+        M = torch.cat((torch.cat((Id, W), 1), torch.cat((Z, Id), 1)), 0)
+
+        return x.mm(M) + self.bias
 
     def get_sympletic_app(self):
         rng = np.random.default_rng()
@@ -76,7 +82,7 @@ class sympLinear(torch.nn.Module):
         A = rng.random(sze)
         A = (A + A.transpose()) / 2
 
-        return torch.from_numpy(A)
+        return torch.from_numpy(A).type(torch.float32)
 
 
 class SympNet(torch.nn.Module):
@@ -89,6 +95,6 @@ class SympNet(torch.nn.Module):
     def forward(self, x):
         # Connect the layer Outputs here to define the forward pass
 
-        x = torch.selu(self.lin1(x))
+        x = self.lin1(x)
 
         return x

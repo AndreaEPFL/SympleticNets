@@ -60,5 +60,5 @@ def sympletic_test(N, grad):
     J = torch.from_numpy(np.append(J_np, J_np_bis, axis=0)).type(torch.float32)
 
     test = torch.transpose(grad, 0, 1) @ J @ grad
-
+    print(test)
     return torch.eq(J, test)
