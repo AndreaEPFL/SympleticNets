@@ -56,14 +56,11 @@ class sympLinear(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros(out_size))
 
     def forward(self, x):
+        n = int(self.in_size/2)
+        p, q = torch.split(x, n, dim=1)
+        p = torch.transpose(torch.transpose(p, 0, 1) + self.weights2.mm(torch.transpose(q, 0, 1)), 0, 1)
 
-        W = (self.weights2 + torch.transpose(self.weights2, 0, 1))/2 # Get symmetric matrix with weights
-        sze = (int(self.in_size/2), int(self.out_size/2))
-        Z = torch.zeros(sze)
-        Id = torch.eye(int(self.in_size/2))
-        M = torch.cat((torch.cat((Id, W), 1), torch.cat((Z, Id), 1)), 0)
-
-        return x.mm(M) + self.bias
+        return torch.cat((p, q), 1) + self.bias
 
     def get_sympletic_app(self):
         rng = np.random.default_rng()
