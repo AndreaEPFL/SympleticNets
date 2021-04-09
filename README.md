@@ -2,6 +2,8 @@
 
 ## Description
 Goal: implementation of sympletic networks to predict ODE's solution in time.
+Inputs are the positions on the X axis of the two objects and their velocity at time t
+Outputs are their positions on the X-axis and their velocity at time t+1
 
 ## Content
 | File name | Description |
