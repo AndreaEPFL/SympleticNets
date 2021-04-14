@@ -48,7 +48,7 @@ def main():
     loss_func = torch.nn.MSELoss()  # Regression mean squared loss
 
     BATCH_SIZE = 400
-    EPOCH = 2
+    EPOCH = 5
 
     torch_dataset = Data.TensorDataset(net_input, net_output)
 
@@ -81,14 +81,13 @@ def main():
             loss.backward()  # backpropagation, compute gradients
             optimizer.step()  # apply gradients
 
+            # Test symplecity
+            #print("Sympletic test :", sympletic_test(4, b_x, prediction))
+
         loss_store.append(loss.item())
-        #wandb.log({"loss": loss})
+        #wandb.log({"loss": loss.item()})
         print(f"Epoch: {epoch}, Training loss: {loss.item()}")
 
-
-        # Test symplecity
-        print(smpNet.lin1.weights2.grad)
-        print("Sympletic test :", sympletic_test(2, smpNet.lin1.weights2.grad))
 
     # Plot the losses
     fig = plt.figure(figsize=(15, 9), dpi=100)
@@ -154,6 +153,8 @@ def main():
 
     #validation_qty = validation_model(data_val, resnet, loss_func)
     #print("The MSE for the validation set is equal to", validation_qty)
+
+    print(type(loss), type(prediction))
     return None
 
 

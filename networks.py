@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import torch.nn.functional as F
 
 net4 = torch.nn.Sequential(
     torch.nn.Linear(4, 20),
@@ -56,7 +57,7 @@ class sympLinear(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros(out_size))
 
     def forward(self, x):
-        n = int(self.in_size/2)
+        n = int(self.in_size / 2)
         p, q = torch.split(x, n, dim=1)
         p = torch.transpose(torch.transpose(p, 0, 1) + self.weights2.mm(torch.transpose(q, 0, 1)), 0, 1)
 
@@ -82,6 +83,20 @@ class sympLinear(torch.nn.Module):
         return torch.from_numpy(A).type(torch.float32)
 
 
+class activation_module(torch.nn.Module):
+    def __init__(self, N, act_function=F.SELU()):
+        super().__init__()
+
+        self.size = int(N / 2)  # N should be the number of variables
+        self.weight = torch.nn.Parameter(torch.Tensor(self.size))
+        self.function = act_function  # Activation function chose. Default is SELU
+
+    def forward(self, x):
+        p, q = torch.split(x, self.size, dim=1)  # Divide input in (P, Q)
+        q = torch.diag(self.weight) @ self.function(p) + q
+        return torch.cat((p, q), 1)
+
+
 class SympNet(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -89,9 +104,10 @@ class SympNet(torch.nn.Module):
         # Define all Layers Here
         self.lin1 = sympLinear(4, 4)
 
+        # Activation function
+
     def forward(self, x):
         # Connect the layer Outputs here to define the forward pass
-
         x = self.lin1(x)
 
         return x

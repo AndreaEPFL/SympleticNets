@@ -1,6 +1,5 @@
 import torch
 from torch.autograd import Variable
-import torch.nn.functional as F
 
 import matplotlib.pyplot as plt
 
@@ -52,13 +51,14 @@ def validation_model(data, network, loss):
     return loss_quantity.item()
 
 
-def sympletic_test(N, grad):
-    n = int(N / 2)
-    J_np = np.append(np.zeros((n, n)), np.identity(n), axis=1)
-    J_np_bis = np.append((-1)*np.identity(n), np.zeros((n,n)), axis=1)
+def sympletic_test(N, input_val, output_val):
+    grad = torch.autograd.grad(output_val, input_val)
+
+    J_np = np.append(np.zeros((N, N)), np.identity(N), axis=1)
+    J_np_bis = np.append((-1)*np.identity(N), np.zeros((N,N)), axis=1)
 
     J = torch.from_numpy(np.append(J_np, J_np_bis, axis=0)).type(torch.float32)
 
     test = torch.transpose(grad, 0, 1) @ J @ grad
     print(test)
-    return torch.eq(J, test)
+    return (J-test).norm()
