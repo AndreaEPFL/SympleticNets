@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 import torch.nn.functional as F
 
 net4 = torch.nn.Sequential(
@@ -47,44 +46,42 @@ class sympLinear(torch.nn.Module):
         self.in_size = in_size
         self.out_size = out_size
 
-        mat = self.get_sympletic_app()
         mat2 = self.symmetric_matrix()
         mat3 = self.get_sympletic_app()
 
-        self.weights1 = torch.nn.Parameter(mat, requires_grad=True)  # 'requires_grad' to store gradient
-        self.weights2 = torch.nn.Parameter(mat2, requires_grad=True)  # Partial matrix
+        self.weights2 = torch.nn.Parameter(mat2)  # Partial matrix this part only need to be updated
         self.weights3 = torch.nn.Parameter(mat3)  # Not used for the moment
         self.bias = torch.nn.Parameter(torch.zeros(out_size))
 
     def forward(self, x):
         n = int(self.in_size / 2)
-        p, q = torch.split(x, n, dim=1)
-        p = torch.transpose(torch.transpose(p, 0, 1) + self.weights2.mm(torch.transpose(q, 0, 1)), 0, 1)
+        p, q = torch.split(x, n)
+        p = torch.reshape(torch.reshape(p, (n, 1)) +
+                            (self.weights2 + torch.transpose(self.weights2, 0, 1)).mm(torch.reshape(q, (n, 1))), (-1,))
 
-        return torch.cat((p, q), 1) + self.bias
+        return torch.cat((p, q)) + self.bias
 
     def get_sympletic_app(self):
-        rng = np.random.default_rng()
-        sze = (int(self.in_size / 2), int(self.out_size / 2))
-        A = rng.random(sze)
-        A = (A + A.transpose()) / 2
+        in_shape = int(self.in_size / 2)
+        out_shape = int(self.out_size / 2)
 
-        S = np.append(np.identity(int(self.out_size / 2)), A, axis=1)
-        S_ = np.append(np.zeros(sze), np.identity(int(self.out_size / 2)), axis=1)
+        A = torch.Tensor(in_shape, out_shape).type(torch.float32)
+        A = (A + torch.transpose(A, 0, 1)) / 2
 
-        return torch.from_numpy(np.append(S, S_, axis=0)).type(torch.float32)
+        S = torch.cat((torch.diag(torch.ones(out_shape)), A), 1)
+        S_ = torch.cat((torch.zeros(in_shape, out_shape), torch.diag(torch.ones(out_shape))), 1)
+
+        return torch.cat((S, S_), 0)
 
     def symmetric_matrix(self):
-        rng = np.random.default_rng()
-        sze = (int(self.in_size / 2), int(self.out_size / 2))
-        A = rng.random(sze)
-        A = (A + A.transpose()) / 2
+        A = torch.Tensor(int(self.in_size / 2), int(self.out_size / 2)).type(torch.float32)
+        A = (A + torch.transpose(A, 0, 1)) / 2
 
-        return torch.from_numpy(A).type(torch.float32)
+        return A
 
 
 class activation_module(torch.nn.Module):
-    def __init__(self, N, act_function=F.SELU()):
+    def __init__(self, N, act_function=F.selu):
         super().__init__()
 
         self.size = int(N / 2)  # N should be the number of variables

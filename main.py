@@ -1,12 +1,13 @@
 from utils import *
 from networks import *
 import torch.utils.data as Data
+import time
 import wandb
 
 
 def main():
     # wandb.ai configuration
-    """
+
     wandb.init(project="sympletic_project")
 
     # Parameters
@@ -16,7 +17,7 @@ def main():
     config.architecture = "SympNet"
     config.batch_size = 400
     config.epochs = 300
-    config.dataset = "Kepler_init_dis_1.0429" """
+    config.dataset = "Kepler_init_dis_1.0429"
 
     # Import data generated on Matlab
     data = load_data(
@@ -43,20 +44,22 @@ def main():
     resnet = ResNetLin(4)
     net = net4
 
+    # Initialize data
+    net_input = data_process(smpNet, net_input)
+
     # Define optimizer and loss function for the network training
     optimizer = torch.optim.Adam(smpNet.parameters(), lr=0.001)
     loss_func = torch.nn.MSELoss()  # Regression mean squared loss
 
     BATCH_SIZE = 400
-    EPOCH = 5
+    EPOCH = 50
 
     torch_dataset = Data.TensorDataset(net_input, net_output)
 
     loader = Data.DataLoader(
         dataset=torch_dataset,
         batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=2)
+        shuffle=True)
 
     start_time = time.time()  # Chronometer time
 
@@ -66,26 +69,23 @@ def main():
     for epoch in range(EPOCH):
 
         for step, (batch_x, batch_y) in enumerate(loader):  # for each training step
-
-            b_x = Variable(batch_x)
-            b_y = Variable(batch_y)
-
-            prediction = smpNet(b_x)  # input x and predict based on x
+            with torch.autograd.set_detect_anomaly(True):
+                prediction = data_process(smpNet, batch_x)  # input x and prediction based on x
 
             # for name, param in resNet.named_parameters():
             #    if param.requires_grad:
             #        print(name, param.data)
 
-            loss = loss_func(prediction, b_y)  # must be (1. nn output, 2. target)
-            optimizer.zero_grad()  # clear gradients for next train
-            loss.backward()  # backpropagation, compute gradients
-            optimizer.step()  # apply gradients
+                loss = loss_func(prediction, batch_y)  # must be (1. nn output, 2. target)
+                optimizer.zero_grad()  # clear gradients for next train
+                loss.backward(retain_graph=True)  # backpropagation, compute gradients
+                optimizer.step()  # apply gradients
 
-            # Test symplecity
+            # Test sympleticity
             #print("Sympletic test :", sympletic_test(4, b_x, prediction))
 
         loss_store.append(loss.item())
-        #wandb.log({"loss": loss.item()})
+        wandb.log({"loss": loss.item()})
         print(f"Epoch: {epoch}, Training loss: {loss.item()}")
 
 
@@ -104,10 +104,10 @@ def main():
     print('Execution time in seconds: ' + str(execution_time))
 
     # Finish wandb
-    #wandb.finish()
+    wandb.finish()
 
     # Plot the results
-    prediction = smpNet(net_input)
+    prediction = data_process(smpNet, net_input)
     new_time_vector = time_vector[1:len(time_vector)]
     fig = plt.figure(figsize=(30, 20), dpi=100)
 

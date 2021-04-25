@@ -1,15 +1,20 @@
 import torch
 from torch.autograd import Variable
-
 import matplotlib.pyplot as plt
-
 import numpy as np
-import time
 
 
 def load_data(path):
     data = np.loadtxt(path, delimiter=",")  # Use r ?
     return data
+
+
+def data_process(net, data):
+    B = data.clone()  # To avoid in-place operation
+    n = len(data)
+    for i in range(n - 1):
+        B[i + 1] = net(data[i])
+    return B
 
 
 def create_time_vector(stop, steps):
@@ -52,13 +57,12 @@ def validation_model(data, network, loss):
 
 
 def sympletic_test(N, input_val, output_val):
-    grad = torch.autograd.grad(output_val, input_val)
-
+    r = len(input_val)
     J_np = np.append(np.zeros((N, N)), np.identity(N), axis=1)
-    J_np_bis = np.append((-1)*np.identity(N), np.zeros((N,N)), axis=1)
+    J_np_bis = np.append((-1) * np.identity(N), np.zeros((N, N)), axis=1)
 
     J = torch.from_numpy(np.append(J_np, J_np_bis, axis=0)).type(torch.float32)
 
     test = torch.transpose(grad, 0, 1) @ J @ grad
     print(test)
-    return (J-test).norm()
+    return (J - test).norm()
