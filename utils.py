@@ -2,6 +2,7 @@ import torch
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 
 def load_data(path):
@@ -10,6 +11,7 @@ def load_data(path):
 
 
 def data_process(net, data):
+    """ Computes values for the model training (x, net(x)) """
     B = data.clone()  # To avoid in-place operation
     n = len(data)
     for i in range(n - 1):
@@ -50,7 +52,7 @@ def net_variables(data):
 
 def validation_model(data, network, loss):
     dat = Variable(torch.from_numpy(data).type(torch.float32))  # Take values from 10 to 15 sec. only
-    prediction = network(dat)
+    prediction = data_process(network, dat)
     loss_quantity = loss(dat, prediction)
 
     return loss_quantity.item()
@@ -66,3 +68,13 @@ def sympletic_test(N, input_val, output_val):
     test = torch.transpose(grad, 0, 1) @ J @ grad
     print(test)
     return (J - test).norm()
+
+
+def xavier_initialization(x):
+    size = x.shape
+    if len(size) == 1:
+        total = size[0] + 1
+    else:
+        total = sum(size)
+    k = math.sqrt(2 / total)
+    return torch.empty(size).uniform_(-k,k)
